@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: audit-compliance-sink
+  threads:
+    virtual:
+      enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    consumer:
+      group-id: audit-compliance-sink
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      max-poll-records: 500
+      properties:
+        isolation.level: read_committed
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: ${SERVER_PORT:8080}
+
+aws:
+  region: ${AWS_REGION:ap-south-1}
+  endpoint-override: ${AWS_ENDPOINT_OVERRIDE:#{null}}
+
+sink:
+  human-audit:
+    bucket: ${HUMAN_AUDIT_BUCKET:repositree-human-audit}
+  agent-trace:
+    bucket: ${AGENT_TRACE_BUCKET:repositree-agent-trace}
+  athena:
+    database: ${ATHENA_DATABASE:audit_compliance}
+    output-bucket: ${ATHENA_OUTPUT_BUCKET:s3://repositree-athena-results/}
+  kafka:
+    topics: audit.log,payment.events,agent.runs,agent.tool_calls,agent.approvals,agent.guardrail.violations,agent.cost.events
+
+security:
+  oauth2:
+    resourceserver:
+      jwt:
+        jwk-set-uri: ${JWKS_URI:http://localhost:8082/.well-known/jwks.json}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
